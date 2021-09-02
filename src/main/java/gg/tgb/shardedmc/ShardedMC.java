@@ -1,8 +1,5 @@
 package gg.tgb.shardedmc;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -15,6 +12,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +34,7 @@ public final class ShardedMC extends JavaPlugin implements CommandExecutor, List
         fakePlayers = new ArrayList<>();
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            String recvMessage = new String(delivery.getBody(), "UTF-8");
+            String recvMessage = new String(delivery.getBody(), StandardCharsets.UTF_8);
             Bukkit.getLogger().log(Level.INFO, " [x] Received '" + recvMessage + "'");
         };
 

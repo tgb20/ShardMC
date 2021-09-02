@@ -10,8 +10,9 @@ import java.util.logging.Level;
 
 public class RabbitMessenger {
 
+    private static final String EXCHANGE_NAME = "SHARDMC";
+
     private Channel channel;
-    private String queueName;
 
     public RabbitMessenger(DeliverCallback callback) {
         ConnectionFactory factory = new ConnectionFactory();
@@ -20,10 +21,10 @@ public class RabbitMessenger {
             Connection connection = factory.newConnection();
             channel = connection.createChannel();
 
-            channel.exchangeDeclare("SHARDMC", "fanout");
+            channel.exchangeDeclare(EXCHANGE_NAME, "fanout");
 
-            queueName = channel.queueDeclare().getQueue();
-            channel.queueBind(queueName, "SHARDMC", "");
+            String queueName = channel.queueDeclare().getQueue();
+            channel.queueBind(queueName, EXCHANGE_NAME, "");
 
             channel.basicConsume(queueName, true, callback, consumerTag -> { });
         } catch (Exception e) {
@@ -33,7 +34,7 @@ public class RabbitMessenger {
 
     public void sendMessage(String message) {
         try {
-            channel.basicPublish("SHARDMC", "", null, message.getBytes());
+            channel.basicPublish(EXCHANGE_NAME, "", null, message.getBytes());
             Bukkit.getLogger().log(Level.INFO, " [x] Sent '" + message + "'");
         } catch (Exception e) {
             e.printStackTrace();

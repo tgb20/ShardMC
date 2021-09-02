@@ -25,17 +25,13 @@ import java.util.UUID;
 
 public class FakePlayer {
 
-    private String name;
-    private UUID uuid;
-    private GameProfile profile;
-    private Location location;
-    private EntityPlayer npc;
+    private final GameProfile profile;
+    private final Location location;
+    private final EntityPlayer npc;
 
     FakePlayer(String name, UUID uuid, Location location) {
-        this.name = name;
-        this.uuid = uuid;
         this.location = location;
-        this.profile = new GameProfile(this.uuid, this.name);
+        this.profile = new GameProfile(uuid, name);
         MinecraftServer server = ((CraftServer) Bukkit.getServer()).getServer();
         WorldServer world = ((CraftWorld) Bukkit.getWorlds().get(0)).getHandle();
 
