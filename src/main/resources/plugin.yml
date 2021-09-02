@@ -7,12 +7,3 @@ load: STARTUP
 authors: [ tgb ]
 description: Allows sharding of Minecraft servers
 website: https://onlinemo.de
-commands:
-  createnpc:
-    description: Spawns an NPC clone of the current player
-    usage: /<command>
-    permission: shardmc.createnpc
-  sendmessage:
-    description: Sends a message over RabbitMQ
-    usage: /<command>
-    permission: shardmc.sendmessage

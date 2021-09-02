@@ -25,6 +25,8 @@ import java.util.UUID;
 
 public class FakePlayer {
 
+    public String id;
+
     private final GameProfile profile;
     private final Location location;
     private final EntityPlayer npc;
@@ -32,6 +34,7 @@ public class FakePlayer {
     FakePlayer(String name, UUID uuid, Location location) {
         this.location = location;
         this.profile = new GameProfile(uuid, name);
+        this.id = uuid.toString();
         MinecraftServer server = ((CraftServer) Bukkit.getServer()).getServer();
         WorldServer world = ((CraftWorld) Bukkit.getWorlds().get(0)).getHandle();
 
@@ -49,6 +52,13 @@ public class FakePlayer {
             connection.sendPacket(new PacketPlayOutPlayerInfo(PacketPlayOutPlayerInfo.EnumPlayerInfoAction.a, npc));
             connection.sendPacket(new PacketPlayOutNamedEntitySpawn(npc));
             connection.sendPacket(new PacketPlayOutEntityMetadata(npc.getId(), npc.getDataWatcher(), true));
+        }
+    }
+
+    public void disconnect() {
+        for(Player all : Bukkit.getOnlinePlayers()){
+            PlayerConnection connection = ((CraftPlayer)all).getHandle().b;
+            connection.sendPacket(new PacketPlayOutEntityDestroy(npc.getBukkitEntity().getEntityId()));
         }
     }
 
