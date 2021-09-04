@@ -1,6 +1,9 @@
 package gg.tgb.shardedmc;
 
 import com.rabbitmq.client.DeliverCallback;
+import gg.tgb.shardedmc.messages.JoinMessage;
+import gg.tgb.shardedmc.messages.LeaveMessage;
+import gg.tgb.shardedmc.messages.MoveMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -105,18 +108,19 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         for(FakePlayer p: fakePlayers) {
             p.spawnForNewPlayer(eP);
         }
-        messenger.sendMessage("j," + eP.getUniqueId()+ "," + eP.getName() + "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
+
+        messenger.sendMessage(new JoinMessage(eP));
     }
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
         Player eP = event.getPlayer();
-        messenger.sendMessage("l," + eP.getUniqueId());
+        messenger.sendMessage(new LeaveMessage(eP));
     }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player eP = event.getPlayer();
-        messenger.sendMessage("m," + eP.getUniqueId()+ "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
+        messenger.sendMessage(new MoveMessage(eP));
     }
 }
