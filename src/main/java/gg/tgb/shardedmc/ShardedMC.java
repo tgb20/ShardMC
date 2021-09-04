@@ -40,7 +40,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                 String command = messageData[0];
 
                 switch(command) {
-                    case "spawn":
+                    case "j":
                         UUID newID = UUID.fromString(messageData[1]);
                         Player tempP = Bukkit.getPlayer(newID);
                         // Only create a Fake Player if they are not actually in this server
@@ -62,7 +62,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                             Bukkit.getLogger().log(Level.INFO, "Remote player joined: " + newID);
                         }
                         break;
-                    case "disconnect":
+                    case "l":
                         for(int i = 0; i < fakePlayers.size(); i++) {
                             FakePlayer fp = fakePlayers.get(i);
                             if(fp.id.equalsIgnoreCase(messageData[1])) {
@@ -72,7 +72,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                             }
                         }
                         break;
-                    case "move":
+                    case "m":
                         for (FakePlayer fp : fakePlayers) {
                             if (fp.id.equalsIgnoreCase(messageData[1])) {
                                 double x = Double.parseDouble(messageData[2]);
@@ -105,18 +105,18 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         for(FakePlayer p: fakePlayers) {
             p.spawnForNewPlayer(eP);
         }
-        messenger.sendMessage("spawn," + eP.getUniqueId()+ "," + eP.getName() + "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
+        messenger.sendMessage("j," + eP.getUniqueId()+ "," + eP.getName() + "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
     }
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
         Player eP = event.getPlayer();
-        messenger.sendMessage("disconnect," + eP.getUniqueId());
+        messenger.sendMessage("l," + eP.getUniqueId());
     }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player eP = event.getPlayer();
-        messenger.sendMessage("move," + eP.getUniqueId()+ "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
+        messenger.sendMessage("m," + eP.getUniqueId()+ "," + eP.getLocation().getX() + "," + eP.getLocation().getY() + "," + eP.getLocation().getZ() + "," + eP.getLocation().getYaw() + "," + eP.getLocation().getPitch());
     }
 }
