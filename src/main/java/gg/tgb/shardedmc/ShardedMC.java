@@ -24,7 +24,7 @@ import java.util.logging.Level;
 
 public final class ShardedMC extends JavaPlugin implements Listener {
 
-    private List<FakePlayer> fakePlayers;
+    private List<RemotePlayer> remotePlayers;
 
     private RabbitMessenger messenger;
 
@@ -34,7 +34,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
     public void onEnable() {
         // Plugin startup logic
         getServer().getPluginManager().registerEvents(this, this);
-        fakePlayers = new ArrayList<>();
+        remotePlayers = new ArrayList<>();
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 
@@ -49,10 +49,10 @@ public final class ShardedMC extends JavaPlugin implements Listener {
 
                     Player tempP = Bukkit.getPlayer(joinPacket.getUuid());
                     if(tempP == null || !Objects.requireNonNull(Bukkit.getPlayer(joinPacket.getUuid())).isOnline()) {
-                        FakePlayer fp = new FakePlayer(joinPacket.getName(), joinPacket.getUuid(), joinPacket.getLocation());
-                        fp.setSkin(joinPacket.getUuid());
-                        fp.spawn();
-                        fakePlayers.add(fp);
+                        RemotePlayer rp = new RemotePlayer(joinPacket.getName(), joinPacket.getUuid(), joinPacket.getLocation());
+                        rp.setSkin(joinPacket.getUuid());
+                        rp.spawn();
+                        remotePlayers.add(rp);
 
                         Bukkit.getLogger().log(Level.INFO, "Remote player joined: " + joinPacket.getUuid());
                     }
@@ -60,11 +60,11 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                 case 1:
                     LeavePacket leavePacket = new LeavePacket();
                     leavePacket.read(nd);
-                    for(int i = 0; i < fakePlayers.size(); i++) {
-                        FakePlayer fp = fakePlayers.get(i);
-                        if(fp.id.equalsIgnoreCase(leavePacket.getUuid().toString())) {
-                            fp.disconnect();
-                            fakePlayers.remove(fp);
+                    for(int i = 0; i < remotePlayers.size(); i++) {
+                        RemotePlayer rp = remotePlayers.get(i);
+                        if(rp.id.equalsIgnoreCase(leavePacket.getUuid().toString())) {
+                            rp.disconnect();
+                            remotePlayers.remove(rp);
                             Bukkit.getLogger().log(Level.INFO, "Remote player left: " + leavePacket.getUuid());
                         }
                     }
@@ -72,9 +72,9 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                 case 2:
                     MovePacket movePacket = new MovePacket();
                     movePacket.read(nd);
-                    for (FakePlayer fp : fakePlayers) {
-                        if (fp.id.equalsIgnoreCase(movePacket.getUuid().toString())) {
-                            fp.move(movePacket.getLocation());
+                    for (RemotePlayer rp : remotePlayers) {
+                        if (rp.id.equalsIgnoreCase(movePacket.getUuid().toString())) {
+                            rp.move(movePacket.getLocation());
                         }
                     }
                     break;
@@ -96,8 +96,8 @@ public final class ShardedMC extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        for(FakePlayer fp: fakePlayers) {
-            fp.spawnForNewPlayer(p);
+        for(RemotePlayer rp: remotePlayers) {
+            rp.spawnForNewPlayer(p);
         }
 
         JoinPacket packet = new JoinPacket();
