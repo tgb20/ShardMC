@@ -4,7 +4,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import gg.tgb.shardedmc.messages.Message;
 
 public class RabbitMessenger {
 
@@ -28,9 +27,9 @@ public class RabbitMessenger {
         }
     }
 
-    public void sendMessage(Message message) {
+    public void sendMessage(byte[] data) {
         try {
-            channel.basicPublish(EXCHANGE_NAME, "", null, message.content().getBytes());
+            channel.basicPublish(EXCHANGE_NAME, "", null, data);
         } catch (Exception e) {
             e.printStackTrace();
         }

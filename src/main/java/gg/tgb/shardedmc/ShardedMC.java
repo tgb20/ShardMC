@@ -1,11 +1,13 @@
 package gg.tgb.shardedmc;
 
 import com.rabbitmq.client.DeliverCallback;
-import gg.tgb.shardedmc.messages.JoinMessage;
-import gg.tgb.shardedmc.messages.LeaveMessage;
-import gg.tgb.shardedmc.messages.MoveMessage;
+import gg.tgb.shardedmc.packets.events.JoinPacket;
+import gg.tgb.shardedmc.packets.events.LeavePacket;
+import gg.tgb.shardedmc.packets.events.MovePacket;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,11 +16,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.logging.Level;
 
 
@@ -28,6 +28,8 @@ public final class ShardedMC extends JavaPlugin implements Listener {
 
     private RabbitMessenger messenger;
 
+    protected static final ByteBufAllocator alloc = PooledByteBufAllocator.DEFAULT;
+
     @Override
     public void onEnable() {
         // Plugin startup logic
@@ -35,61 +37,50 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         fakePlayers = new ArrayList<>();
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            String recvMessage = new String(delivery.getBody(), StandardCharsets.UTF_8);
 
-            String[] messageData = recvMessage.split(",");
+            ByteBuf nd = alloc.buffer(delivery.getBody().length, delivery.getBody().length);
+            nd.writeBytes(delivery.getBody());
 
-            if(messageData.length > 0) {
-                String command = messageData[0];
+            int packetId = nd.readInt();
+            switch (packetId) {
+                case 0:
+                    JoinPacket joinPacket = new JoinPacket();
+                    joinPacket.read(nd);
 
-                switch(command) {
-                    case "j":
-                        UUID newID = UUID.fromString(messageData[1]);
-                        Player tempP = Bukkit.getPlayer(newID);
-                        // Only create a Fake Player if they are not actually in this server
-                        if(tempP == null || !Objects.requireNonNull(Bukkit.getPlayer(newID)).isOnline()) {
+                    Player tempP = Bukkit.getPlayer(joinPacket.getUuid());
+                    if(tempP == null || !Objects.requireNonNull(Bukkit.getPlayer(joinPacket.getUuid())).isOnline()) {
+                        FakePlayer fp = new FakePlayer(joinPacket.getName(), joinPacket.getUuid(), joinPacket.getLocation());
+                        fp.setSkin(joinPacket.getUuid());
+                        fp.spawn();
+                        fakePlayers.add(fp);
 
-                            String name = messageData[2];
-                            double x = Double.parseDouble(messageData[3]);
-                            double y = Double.parseDouble(messageData[4]);
-                            double z = Double.parseDouble(messageData[5]);
-                            float yaw = Float.parseFloat(messageData[6]);
-                            float pitch = Float.parseFloat(messageData[7]);
-                            Location loc = new Location(getServer().getWorld("world"), x, y, z, yaw, pitch);
-
-                            FakePlayer fp = new FakePlayer(name, newID, loc);
-                            fp.setSkin(newID);
-                            fp.spawn();
-                            fakePlayers.add(fp);
-
-                            Bukkit.getLogger().log(Level.INFO, "Remote player joined: " + newID);
+                        Bukkit.getLogger().log(Level.INFO, "Remote player joined: " + joinPacket.getUuid());
+                    }
+                    break;
+                case 1:
+                    LeavePacket leavePacket = new LeavePacket();
+                    leavePacket.read(nd);
+                    for(int i = 0; i < fakePlayers.size(); i++) {
+                        FakePlayer fp = fakePlayers.get(i);
+                        if(fp.id.equalsIgnoreCase(leavePacket.getUuid().toString())) {
+                            fp.disconnect();
+                            fakePlayers.remove(fp);
+                            Bukkit.getLogger().log(Level.INFO, "Remote player left: " + leavePacket.getUuid());
                         }
-                        break;
-                    case "l":
-                        for(int i = 0; i < fakePlayers.size(); i++) {
-                            FakePlayer fp = fakePlayers.get(i);
-                            if(fp.id.equalsIgnoreCase(messageData[1])) {
-                                fp.disconnect();
-                                fakePlayers.remove(fp);
-                                Bukkit.getLogger().log(Level.INFO, "Remote player left: " + messageData[1]);
-                            }
+                    }
+                    break;
+                case 2:
+                    MovePacket movePacket = new MovePacket();
+                    movePacket.read(nd);
+                    for (FakePlayer fp : fakePlayers) {
+                        if (fp.id.equalsIgnoreCase(movePacket.getUuid().toString())) {
+                            fp.move(movePacket.getLocation());
                         }
-                        break;
-                    case "m":
-                        for (FakePlayer fp : fakePlayers) {
-                            if (fp.id.equalsIgnoreCase(messageData[1])) {
-                                double x = Double.parseDouble(messageData[2]);
-                                double y = Double.parseDouble(messageData[3]);
-                                double z = Double.parseDouble(messageData[4]);
-                                float yaw = Float.parseFloat(messageData[5]);
-                                float pitch = Float.parseFloat(messageData[6]);
-                                Location loc = new Location(getServer().getWorld("world"), x, y, z, yaw, pitch);
-                                fp.move(loc);
-                            }
-                        }
-                    default:
-                        break;
-                }
+                    }
+                    break;
+                default:
+                    Bukkit.getLogger().log(Level.INFO, "Unknown packet with ID: " + packetId);
+                    break;
             }
         };
 
@@ -104,23 +95,47 @@ public final class ShardedMC extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Player eP = event.getPlayer();
-        for(FakePlayer p: fakePlayers) {
-            p.spawnForNewPlayer(eP);
+        Player p = event.getPlayer();
+        for(FakePlayer fp: fakePlayers) {
+            fp.spawnForNewPlayer(p);
         }
 
-        messenger.sendMessage(new JoinMessage(eP));
+        JoinPacket packet = new JoinPacket();
+        packet.setUuid(p.getUniqueId());
+        packet.setName(p.getName());
+        packet.setLocation(p.getLocation());
+        ByteBuf bb = alloc.buffer(2048, 2048);
+        packet.write(bb);
+        byte[] b = new byte[bb.readableBytes()];
+        bb.duplicate().readBytes(b);
+
+        messenger.sendMessage(b);
     }
 
     @EventHandler
     public void onPlayerLeave(PlayerQuitEvent event) {
-        Player eP = event.getPlayer();
-        messenger.sendMessage(new LeaveMessage(eP));
+        Player p = event.getPlayer();
+        LeavePacket packet = new LeavePacket();
+        packet.setUuid(p.getUniqueId());
+        ByteBuf bb = alloc.buffer(2048, 2048);
+        packet.write(bb);
+        byte[] b = new byte[bb.readableBytes()];
+        bb.duplicate().readBytes(b);
+
+        messenger.sendMessage(b);
     }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
-        Player eP = event.getPlayer();
-        messenger.sendMessage(new MoveMessage(eP));
+        Player p = event.getPlayer();
+        MovePacket packet = new MovePacket();
+        packet.setUuid(p.getUniqueId());
+        packet.setLocation(p.getLocation());
+        ByteBuf bb = alloc.buffer(2048, 2048);
+        packet.write(bb);
+        byte[] b = new byte[bb.readableBytes()];
+        bb.duplicate().readBytes(b);
+
+        messenger.sendMessage(b);
     }
 }
