@@ -15,6 +15,7 @@ public class JoinPacket extends AbstractPacket {
     private Location location;
 
     private int PACKET_ID = 0;
+    public int LENGTH = 88;
 
     public JoinPacket(@NotNull UUID sender, @NotNull ByteBuf data) {
         super(sender);
@@ -41,7 +42,7 @@ public class JoinPacket extends AbstractPacket {
 
     @Override
     public void write(@NotNull ByteBuf buffer) {
-        buffer.writeInt(PACKET_ID);
+        buffer.writeByte(PACKET_ID);
         writeUUID(this.uuid, buffer);
         writeString(name, buffer);
         writeLocation(location, buffer);

@@ -14,6 +14,7 @@ public class MovePacket extends AbstractPacket {
     private Location location;
 
     private int PACKET_ID = 2;
+    public int LENGTH = 56;
 
     public MovePacket(@NotNull UUID sender, @NotNull ByteBuf data) {
         super(sender);
@@ -38,7 +39,7 @@ public class MovePacket extends AbstractPacket {
 
     @Override
     public void write(@NotNull ByteBuf buffer) {
-        buffer.writeInt(PACKET_ID);
+        buffer.writeByte(PACKET_ID);
         writeUUID(this.uuid, buffer);
         writeLocation(location, buffer);
     }

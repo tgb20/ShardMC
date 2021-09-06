@@ -41,7 +41,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
             ByteBuf nd = alloc.buffer(delivery.getBody().length, delivery.getBody().length);
             nd.writeBytes(delivery.getBody());
 
-            int packetId = nd.readInt();
+            int packetId = nd.readByte();
             switch (packetId) {
                 case 0:
                     JoinPacket joinPacket = new JoinPacket();
@@ -104,7 +104,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         packet.setUuid(p.getUniqueId());
         packet.setName(p.getName());
         packet.setLocation(p.getLocation());
-        ByteBuf bb = alloc.buffer(2048, 2048);
+        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
         packet.write(bb);
         byte[] b = new byte[bb.readableBytes()];
         bb.duplicate().readBytes(b);
@@ -117,7 +117,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         Player p = event.getPlayer();
         LeavePacket packet = new LeavePacket();
         packet.setUuid(p.getUniqueId());
-        ByteBuf bb = alloc.buffer(2048, 2048);
+        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
         packet.write(bb);
         byte[] b = new byte[bb.readableBytes()];
         bb.duplicate().readBytes(b);
@@ -131,7 +131,7 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         MovePacket packet = new MovePacket();
         packet.setUuid(p.getUniqueId());
         packet.setLocation(p.getLocation());
-        ByteBuf bb = alloc.buffer(2048, 2048);
+        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
         packet.write(bb);
         byte[] b = new byte[bb.readableBytes()];
         bb.duplicate().readBytes(b);

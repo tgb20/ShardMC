@@ -11,6 +11,7 @@ public class LeavePacket extends AbstractPacket {
 
     private UUID uuid;
     private int PACKET_ID = 1;
+    public int LENGTH = 24;
 
     public LeavePacket(@NotNull UUID sender, @NotNull ByteBuf data) {
         super(sender);
@@ -33,7 +34,7 @@ public class LeavePacket extends AbstractPacket {
 
     @Override
     public void write(@NotNull ByteBuf buffer) {
-        buffer.writeInt(PACKET_ID);
+        buffer.writeByte(PACKET_ID);
         writeUUID(this.uuid, buffer);
     }
 
