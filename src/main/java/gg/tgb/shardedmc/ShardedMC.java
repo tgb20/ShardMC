@@ -1,16 +1,18 @@
 package gg.tgb.shardedmc;
 
 import com.rabbitmq.client.DeliverCallback;
-import gg.tgb.shardedmc.packets.events.JoinPacket;
-import gg.tgb.shardedmc.packets.events.LeavePacket;
-import gg.tgb.shardedmc.packets.events.MovePacket;
+import gg.tgb.shardedmc.packets.events.*;
+import gg.tgb.shardedmc.util.PacketUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -78,6 +80,26 @@ public final class ShardedMC extends JavaPlugin implements Listener {
                         }
                     }
                     break;
+                case 3:
+                    BlockPlacePacket blockPlacePacket = new BlockPlacePacket();
+                    blockPlacePacket.read(nd);
+                    Bukkit.getScheduler().runTask(this, new Runnable() {
+                        @Override
+                        public void run() {
+                            blockPlacePacket.getLocation().getBlock().setType(Material.valueOf(blockPlacePacket.getType()));
+                        }
+                    });
+                    break;
+                case 4:
+                    BlockBreakPacket blockBreakPacket = new BlockBreakPacket();
+                    blockBreakPacket.read(nd);
+                    Bukkit.getScheduler().runTask(this, new Runnable() {
+                        @Override
+                        public void run() {
+                            blockBreakPacket.getLocation().getBlock().setType(Material.AIR);
+                        }
+                    });
+                    break;
                 default:
                     Bukkit.getLogger().log(Level.INFO, "Unknown packet with ID: " + packetId);
                     break;
@@ -104,12 +126,8 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         packet.setUuid(p.getUniqueId());
         packet.setName(p.getName());
         packet.setLocation(p.getLocation());
-        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
-        packet.write(bb);
-        byte[] b = new byte[bb.readableBytes()];
-        bb.duplicate().readBytes(b);
 
-        messenger.sendMessage(b);
+        messenger.sendMessage(PacketUtil.packetToByteArray(packet, packet.LENGTH));
     }
 
     @EventHandler
@@ -117,12 +135,8 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         Player p = event.getPlayer();
         LeavePacket packet = new LeavePacket();
         packet.setUuid(p.getUniqueId());
-        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
-        packet.write(bb);
-        byte[] b = new byte[bb.readableBytes()];
-        bb.duplicate().readBytes(b);
 
-        messenger.sendMessage(b);
+        messenger.sendMessage(PacketUtil.packetToByteArray(packet, packet.LENGTH));
     }
 
     @EventHandler
@@ -131,11 +145,24 @@ public final class ShardedMC extends JavaPlugin implements Listener {
         MovePacket packet = new MovePacket();
         packet.setUuid(p.getUniqueId());
         packet.setLocation(p.getLocation());
-        ByteBuf bb = alloc.buffer(packet.LENGTH, packet.LENGTH);
-        packet.write(bb);
-        byte[] b = new byte[bb.readableBytes()];
-        bb.duplicate().readBytes(b);
 
-        messenger.sendMessage(b);
+        messenger.sendMessage(PacketUtil.packetToByteArray(packet, packet.LENGTH));
+    }
+
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        BlockPlacePacket packet = new BlockPlacePacket();
+        packet.setType(event.getBlock().getType().name());
+        packet.setLocation(event.getBlock().getLocation());
+
+        messenger.sendMessage(PacketUtil.packetToByteArray(packet, packet.LENGTH));
+    }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        BlockBreakPacket packet = new BlockBreakPacket();
+        packet.setLocation(event.getBlock().getLocation());
+
+        messenger.sendMessage(PacketUtil.packetToByteArray(packet, packet.LENGTH));
     }
 }
